@@ -23,7 +23,7 @@
   },
   "autoload": {
     "psr-4": {
-      "Core\\": "src"
+      "MolecularRoute\\": "src/MolecularRoute"
     }
   }
 }
