@@ -1,0 +1,29 @@
+{
+  "name": "toninho09/molecular-route",
+  "description": "route of the Molecular Framework",
+  "keywords": [
+    "core",
+    "molecular",
+	"framework"
+  ],
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Antonio Henrique Lorenzon dos Santos",
+      "email": "antoniohlsantos@gmail.com"
+    }
+  ],
+  "require": {
+    "php": ">=5.4.0",
+    "ext-mbstring": "*",
+     "toninho09/molecularcore" : "*"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "~4.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "Core\\": "src"
+    }
+  }
+}
