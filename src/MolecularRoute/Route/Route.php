@@ -39,6 +39,10 @@
 			$this->registerRoute('HEAD',$name,$function);
 		}
 		
+		public function any($name,$function){
+			$this->registerRoute($this->request->getMethod(),$name,$function);
+		}
+		
 		public function custom($method,$name,$function){
 			if(is_array($method)){
 				foreach($method as $value){
