@@ -76,7 +76,10 @@
 				$this->runNameFunction($function,$match);
 			}elseif(is_array($function)){
 				$this->runArrayFunction($function,$match);
+			}else{
+				throw new Exception("The method not is callable or a valid function name.");
 			}
+			
 		}
 		
 		private function runArrayFunction($function,$match){
@@ -102,10 +105,10 @@
 				if(method_exists($class,$funcParams[2])){
 					call_user_func_array([$class,$funcParams[2]],$match);
 				}else{
-					throw new \Exception('Method '.$funcParams[1][1].' Not Found');
+					throw new \Exception('Method '.$funcParams[2].' Not Found');
 				}
 			}else{
-				throw new \Exception('Class '.$funcParams[1][0].' Not Found');
+				throw new \Exception('Class '.$funcParams[1].' Not Found');
 			}
 		}
 		
