@@ -4,6 +4,8 @@
 		protected $class="\MolecularRoute\Route\Route";
 		
 		public function run(){
-			self::$instance->executeRoute();
+			if(!self::$instance->executeRoute()){
+				throw new \Exception("Route not Found.");
+			}
 		}
 	}

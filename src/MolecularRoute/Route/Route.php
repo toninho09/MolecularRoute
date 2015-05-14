@@ -5,10 +5,12 @@
 		private $routes;
 		private $request;
 		private $group;
-		
+		private $notFound;
+		private $next;
 		public function __construct($app){
 			$this->request = $app->request;
 			$this->group = '';
+			$this->next = false;
 		}
 		
 		public function post($name,$function){
@@ -43,6 +45,14 @@
 			$this->registerRoute($this->request->getMethod(),$name,$function);
 		}
 		
+		public function setNotFound($function){
+			$this->notFound = $function;
+		}
+		
+		public function next(){
+			$this->next = true;
+		}
+		
 		public function custom($method,$name,$function){
 			if(is_array($method)){
 				foreach($method as $value){
@@ -62,14 +72,23 @@
 		
 		public function executeRoute(){
 			foreach($this->routes as $key => $value){
-				if(preg_match("/^".$key."$/",$this->request->getRequestURI(),$match)){
+				if(preg_match("/^".$value['route']."$/",$this->request->getRequestURI(),$match)){
 					unset($match[0]);
-					$this->runFunction($value,$match);
+					$this->runFunction($value["function"],$match);
+					if(!$this->next)
+						return true;
+					$this->next = false;
 				}
 			}
+			try{
+				$this->runFunction($this->notFound);
+			}catch(\Exception $e){
+				throw new \Exception("Route not Found or Default error route is not a callable or not is a valid function name");
+			}
+			return true;
 		}
 		
-		private function runFunction($function,$match){
+		private function runFunction($function,$match = []){
 			if(is_callable( $function )){
 				call_user_func_array($function,$match);
 			}elseif(is_string($function)){
@@ -77,7 +96,7 @@
 			}elseif(is_array($function)){
 				$this->runArrayFunction($function,$match);
 			}else{
-				throw new Exception("The method not is callable or a valid function name.");
+				throw new \Exception("The method not is callable or a valid function name.");
 			}
 			
 		}
@@ -126,7 +145,7 @@
 				if($this->group != '' && $this->group{0} != '/'){
 					$this->group = '/' .$this->group;
 				}
-				$this->routes[$this->putRegex($this->group.$name)] = $function;	
+				$this->routes[] = ["route"=>$this->putRegex($this->group.$name),"function"=> $function];	
 			}
 		}
 	}
