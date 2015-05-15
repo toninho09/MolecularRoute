@@ -74,7 +74,7 @@
 			foreach($this->routes as $key => $value){
 				if(preg_match("/^".$value['route']."$/",$this->request->getRequestURI(),$match)){
 					unset($match[0]);
-					$this->runFunction($value["function"],$match);
+					echo $this->runFunction($value["function"],$match);
 					if(!$this->next)
 						return true;
 					$this->next = false;
@@ -90,11 +90,11 @@
 		
 		private function runFunction($function,$match = []){
 			if(is_callable( $function )){
-				call_user_func_array($function,$match);
+				return call_user_func_array($function,$match);
 			}elseif(is_string($function)){
-				$this->runNameFunction($function,$match);
+				return $this->runNameFunction($function,$match);
 			}elseif(is_array($function)){
-				$this->runArrayFunction($function,$match);
+				return $this->runArrayFunction($function,$match);
 			}else{
 				throw new \Exception("The method not is callable or a valid function name.");
 			}
@@ -103,13 +103,13 @@
 		
 		private function runArrayFunction($function,$match){
 			if(!empty($function['before'])){
-				$this->runFunction($function['before'],$match);
+				return $this->runFunction($function['before'],$match);
 			}
 			if(!empty($function['uses'])){
-				$this->runFunction($function['uses'],$match);
+				return $this->runFunction($function['uses'],$match);
 			}
 			if(!empty($function['after'])){
-				$this->runFunction($function['after'],$match);
+				return $this->runFunction($function['after'],$match);
 			}
 		}
 		
@@ -122,7 +122,7 @@
 			if(class_exists($funcParams[1])){
 				$class = new $funcParams[1]();
 				if(method_exists($class,$funcParams[2])){
-					call_user_func_array([$class,$funcParams[2]],$match);
+					return call_user_func_array([$class,$funcParams[2]],$match);
 				}else{
 					throw new \Exception('Method '.$funcParams[2].' Not Found');
 				}
