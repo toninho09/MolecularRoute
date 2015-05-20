@@ -3,16 +3,34 @@
 	class Route{
 		
 		private $routes;
-		private $request;
 		private $group;
 		private $notFound;
 		private $next;
-		public function __construct($app){
-			$this->request = $app->request;
+		private $app;
+		private $filterAfter;
+		private $filterBefore;		
+		private $filters;
+		public function __construct($app = null){
+			$this->app = $app;
 			$this->group = '';
 			$this->next = false;
+			$filters = [];
+		}
+
+		public function after($function){
+			$this->filterAfter = $function;
+		}
+
+		public function before($function){
+			$this->filterBefore = $function;
 		}
 		
+		public function filter($name,$function){
+			if(isset($this->filters[$name]))
+				throw new Exception("The route has already been defined above.", 1);
+			$this->filters[$name] = $function;
+		}
+
 		public function post($name,$function){
 			$this->registerRoute('POST',$name,$function);
 		}
@@ -42,7 +60,7 @@
 		}
 		
 		public function any($name,$function){
-			$this->registerRoute($this->request->getMethod(),$name,$function);
+			$this->registerRoute($_SERVER['REQUEST_METHOD'],$name,$function);
 		}
 		
 		public function setNotFound($function){
@@ -71,21 +89,38 @@
 		}
 		
 		public function executeRoute(){
+			$findRoute = false;
+			if(!empty($this->filterBefore))
+				$this->runFunction($this->filterBefore,[isset($this->app->request)?$this->app->request:null,isset($this->app->response)?$this->app->response:null]);
 			foreach($this->routes as $key => $value){
-				if(preg_match("/^".$value['route']."$/",$this->request->getRequestURI(),$match)){
-					unset($match[0]);
-					echo $this->runFunction($value["function"],$match);
-					if(!$this->next)
-						return true;
-					$this->next = false;
+				if($this->executeIndividualRoute($value)){
+					$findRoute = true;
+					break;
 				}
 			}
-			try{
-				$this->runFunction($this->notFound);
-			}catch(\Exception $e){
-				throw new \Exception("Route not Found or Default error route is not a callable or not is a valid function name");
+			if(!$findRoute){
+				try{
+					$this->runFunction($this->notFound);
+				}catch(\Exception $e){
+					throw new \Exception("Route not Found or Default error route is not a callable or not is a valid function name");
+				}
 			}
+			if(!empty($this->filterAfter))
+				$this->runFunction($this->filterAfter,[isset($this->app->request)?$this->app->request:null,isset($this->app->response)?$this->app->response:null]);
 			return true;
+		}
+
+		private function executeIndividualRoute($route){
+			if(preg_match("/^".$route['route']."$/",$_SERVER['REQUEST_URI'],$match)){
+				unset($match[0]);
+				if (isset($this->app->response))
+					$this->app->response->setResponseContent($this->runFunction($route["function"],$match));
+				else
+					echo $this->runFunction($route["function"],$match);
+				if(!$this->next)
+					return true;
+				$this->next = false;
+			}
 		}
 		
 		private function runFunction($function,$match = []){
@@ -98,19 +133,28 @@
 			}else{
 				throw new \Exception("The method not is callable or a valid function name.");
 			}
-			
+		}
+
+		private function runFilters($name){
+			try {
+				$this->runFunction($this->filters[$name],[isset($this->app->request)?$this->app->request:null,isset($this->app->response)?$this->app->response:null]);
+			} catch (\Exception $e) {
+				throw new \Exception("The Filters not is callable or a valid function name.");	
+			}	
 		}
 		
 		private function runArrayFunction($function,$match){
+			$return = null;
 			if(!empty($function['before'])){
-				return $this->runFunction($function['before'],$match);
+				$return .= $this->runFilters($function['before']);
 			}
 			if(!empty($function['uses'])){
-				return $this->runFunction($function['uses'],$match);
+				$return .= $this->runFunction($function['uses'],$match);
 			}
 			if(!empty($function['after'])){
-				return $this->runFunction($function['after'],$match);
+				$return .= $this->runFilters($function['after']);
 			}
+			return $return;
 		}
 		
 		private function runNameFunction($function,$match){
@@ -136,7 +180,7 @@
 		}
 		
 		private function registerRoute($method,$name,$function){
-			if($method == $this->request->getMethod()){
+			if($method == $_SERVER['REQUEST_METHOD']){
 				if(($name == '' && $this->group == '' )||
 				   ($name == '' && $this->group{strlen($this->group)} != '/' ) ||
 				   ($name{0} == '' && $this->group == '' )){
