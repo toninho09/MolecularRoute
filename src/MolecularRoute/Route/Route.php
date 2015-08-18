@@ -146,13 +146,22 @@
 		private function runArrayFunction($function,$match){
 			$return = null;
 			if(!empty($function['before'])){
-				$return .= $this->runFilters($function['before']);
+				ob_start();
+				$temp = $this->runFilters($function['before']);
+				$return .= ob_get_clean();
+				$return .= $temp;
 			}
 			if(!empty($function['uses'])){
-				$return .= $this->runFunction($function['uses'],$match);
+				ob_start();
+				$temp = $this->runFunction($function['uses'],$match);
+				$return .= ob_get_clean();
+				$return .= $temp;
 			}
 			if(!empty($function['after'])){
-				$return .= $this->runFilters($function['after']);
+				ob_start();
+				$temp = $this->runFilters($function['after']);
+				$return .= ob_get_clean();
+				$return .= $temp;
 			}
 			return $return;
 		}
